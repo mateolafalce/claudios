@@ -56,10 +56,10 @@ API key management is handled by Claude Code itself (via `claude` login flow).
 ### Custom slash commands
 
 ClaudiOS ships two slash commands in `config/includes.chroot/home/claudios/.claude/commands/`:
-- `/reset` — reboots the system (`sudo reboot`)
-- `/logout` — exits Claude Code and returns to claudios-shell
+- `/reboot` — reboots the system (`sudo reboot`)
+- `/shut-down` — exits Claude Code and returns to claudios-shell
 
-Passwordless sudo for `/reset` is granted via `config/includes.chroot/etc/sudoers.d/claudios`.
+Passwordless sudo for `/reboot` is granted via `config/includes.chroot/etc/sudoers.d/claudios`.
 
 ### Persistence
 
