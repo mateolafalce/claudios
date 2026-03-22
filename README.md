@@ -12,6 +12,12 @@ A Linux distro that boots straight into [Claude Code](https://claude.ai/code). N
 
 </div>
 
+<div align="center">
+
+<img src="./demo.gif" width="600" alt="ClaudiOS demo">
+
+</div>
+
 ---
 
 ## Why?
