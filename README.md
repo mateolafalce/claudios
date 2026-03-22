@@ -86,6 +86,18 @@ sudo apt install qemu-system-x86
 ./test.sh
 ```
 
+Already flashed a USB? You can boot it in QEMU too:
+
+```bash
+sudo qemu-system-x86_64 \
+  -drive file=/dev/sdX,format=raw \
+  -m 4G \
+  -enable-kvm \
+  -cpu host
+```
+
+Replace `/dev/sdX` with your USB device (`lsblk` to find it).
+
 ## Build From Source
 
 ### Requirements
