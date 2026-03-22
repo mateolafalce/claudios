@@ -4,6 +4,11 @@
 
 # ClaudiOS
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/mateolafalce/claudios)](https://github.com/mateolafalce/claudios/stargazers)
+[![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04_LTS-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com)
+[![Powered by Claude Code](https://img.shields.io/badge/Powered_by-Claude_Code-cc785c?logo=anthropic&logoColor=white)](https://claude.ai/code)
+
 **What if your entire OS was just Claude?**
 
 A Linux distro that boots straight into [Claude Code](https://claude.ai/code). No desktop. No window manager. Just a TTY and an AI agent with full system access. Built on Ubuntu 24.04 LTS.
