@@ -92,7 +92,7 @@ Already flashed a USB? You can boot it in QEMU too:
 sudo apt install ovmf
 sudo qemu-system-x86_64 \
   -drive file=/dev/sdX,format=raw \
-  -bios /usr/share/OVMF/OVMF_CODE.fd \
+  -bios /usr/share/OVMF/OVMF_CODE_4M.fd \
   -m 4G \
   -enable-kvm \
   -cpu host
