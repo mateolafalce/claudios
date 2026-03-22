@@ -89,14 +89,16 @@ sudo apt install qemu-system-x86
 Already flashed a USB? You can boot it in QEMU too:
 
 ```bash
+sudo apt install ovmf
 sudo qemu-system-x86_64 \
   -drive file=/dev/sdX,format=raw \
+  -bios /usr/share/OVMF/OVMF_CODE.fd \
   -m 4G \
   -enable-kvm \
   -cpu host
 ```
 
-Replace `/dev/sdX` with your USB device (`lsblk` to find it).
+Replace `/dev/sdX` with your USB device (`lsblk` to find it). OVMF is required because the ISO uses UEFI boot via GRUB2.
 
 ## Build From Source
 
