@@ -56,6 +56,12 @@ sudo dd if=live-image-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress
 
 Replace `/dev/sdX` with the correct USB device (`lsblk` to identify it).
 
+## Session persistence
+
+On first boot from USB, ClaudiOS automatically detects the boot device and creates a persistence partition in the remaining free space. This means your Claude Code session (auth, config, history) survives reboots — no manual setup needed.
+
+The persistence partition is an ext4 filesystem labeled `persistence` with a `/home` overlay. It is created by a systemd oneshot service (`claudios-persist.service`) that runs once and marks itself done.
+
 ## Default credentials
 
 | Field    | Value                          |
@@ -82,16 +88,20 @@ claudios/
     │   ├── 0050-locale-timezone.hook.chroot
     │   ├── 0100-install-nodejs.hook.chroot
     │   ├── 0200-install-claude-code.hook.chroot
-    │   └── 0300-create-user.hook.chroot
+    │   ├── 0300-create-user.hook.chroot
+    │   └── 0350-enable-persist.hook.chroot
     └── includes.chroot/        # Files copied directly into the filesystem
         ├── etc/motd
         ├── etc/shells
         ├── etc/sudoers.d/claudios  # Passwordless sudo for reboot
+        ├── etc/systemd/system/
+        │   └── claudios-persist.service  # Auto-persistence on first boot
         ├── home/claudios/.claude/commands/
         │   ├── reset.md            # /reset slash command
         │   └── logout.md           # /logout slash command
         └── usr/local/bin/
-            └── claudios-shell      # Primary login shell
+            ├── claudios-shell      # Primary login shell
+            └── claudios-persist    # Auto-persistence setup script
 ```
 
 ## Key components

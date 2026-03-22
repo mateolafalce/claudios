@@ -41,6 +41,7 @@ The project uses **Debian live-build** to produce an `iso-hybrid` image. live-bu
    - `0100` — verifies Node.js/npm and places the NodeSource GPG key
    - `0200` — runs `npm install -g @anthropic-ai/claude-code`
    - `0300` — creates the `claudios` user with `claudios-shell` as its login shell
+   - `0350` — enables the `claudios-persist` systemd service
 6. `config/includes.chroot/` — files copied verbatim into the ISO filesystem at their respective paths
 
 ### Runtime components
@@ -59,6 +60,10 @@ ClaudiOS ships two slash commands in `config/includes.chroot/home/claudios/.clau
 - `/logout` — exits Claude Code and returns to claudios-shell
 
 Passwordless sudo for `/reset` is granted via `config/includes.chroot/etc/sudoers.d/claudios`.
+
+### Persistence
+
+On first boot from USB, a systemd oneshot service (`claudios-persist.service`) automatically detects the boot device and creates a persistence partition in the remaining free space. The ISO boots with `persistence persistence-media=removable-usb` kernel parameters, so on subsequent boots `/home` is overlaid and all Claude Code session data (auth, config, history) is preserved automatically.
 
 ### Key constraint: login shell in `/etc/passwd`
 

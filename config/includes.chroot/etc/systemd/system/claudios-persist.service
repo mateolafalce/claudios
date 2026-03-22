@@ -1,0 +1,12 @@
+[Unit]
+Description=ClaudiOS auto-persistence setup
+After=local-fs.target
+ConditionPathExists=!/var/lib/claudios-persist-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/claudios-persist
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+echo ">>> Enabling claudios-persist service..."
+systemctl enable claudios-persist.service
+echo ">>> claudios-persist service enabled."

@@ -1,0 +1,81 @@
+#!/bin/bash
+# ClaudiOS Shell
+# Login shell for the claudios user. Manages Claude Code installation
+# and launches claude in a loop with an escape hatch to bash.
+
+# --- Auto-install Claude Code if not present ---
+if ! command -v claude &>/dev/null; then
+    echo ""
+    echo "  [ClaudiOS] Claude Code not found. Installing..."
+    echo ""
+    if ! command -v npm &>/dev/null; then
+        echo "  [ERROR] npm is not available. The system may be corrupted."
+        echo "  Dropping to emergency bash..."
+        exec /bin/bash --login
+    fi
+    if ! npm install -g @anthropic-ai/claude-code; then
+        echo "  [ERROR] Claude Code installation failed."
+        echo "  Check your internet connection and log in again to retry."
+        echo "  Dropping to emergency bash..."
+        exec /bin/bash --login
+    fi
+    echo ""
+    echo "  [ClaudiOS] Claude Code installed successfully."
+    echo ""
+fi
+
+# --- Banner and escape hatch ---
+clear
+cat <<'BANNER'
+
+   _____ _                 _ _____ ____   _____
+  / ____| |               | |_   _/ __ \ / ____|
+ | |    | | __ _ _   _  __| | | || |  | | (___
+ | |    | |/ _` | | | |/ _` | | || |  | |\___ \
+ | |____| | (_| | |_| | (_| |_| || |__| |____) |
+  \_____|_|\__,_|\__,_|\__,_|_____\____/|_____/
+
+  Linux, powered by Claude Code
+
+BANNER
+
+echo "  Press Ctrl+C in the next 3 seconds to drop to bash."
+echo ""
+
+_drop_to_bash() {
+    echo ""
+    echo "  [ClaudiOS] Dropping to bash. Type 'claudios-shell' to return."
+    exec /bin/bash --login
+}
+trap '_drop_to_bash' INT
+
+for i in 3 2 1; do
+    printf "  Starting in %s...\r" "$i"
+    sleep 1
+done
+trap - INT
+printf "                    \r"
+
+# --- Main loop: launch claude ---
+while true; do
+    claude
+    EXIT_CODE=$?
+    echo ""
+    echo "  [ClaudiOS] Claude Code exited (code: $EXIT_CODE)."
+    echo "  Press Enter to restart, or type 'bash' to drop to shell."
+    echo ""
+
+    read -r -t 30 CHOICE || CHOICE=""
+
+    case "$CHOICE" in
+        bash|sh|shell|exit)
+            echo ""
+            echo "  [ClaudiOS] Dropping to bash. Type 'claudios-shell' to return."
+            exec /bin/bash --login
+            ;;
+        *)
+            echo "  [ClaudiOS] Restarting Claude Code..."
+            echo ""
+            ;;
+    esac
+done

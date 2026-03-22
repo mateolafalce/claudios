@@ -1,0 +1,77 @@
+#!/bin/bash
+# ClaudiOS Auto-Persistence
+# Detects the boot USB device and creates a persistence partition
+# in the remaining free space. Runs once at first boot via systemd.
+
+set -euo pipefail
+
+MARKER="/var/lib/claudios-persist-done"
+
+# Already configured — nothing to do
+if [ -f "$MARKER" ]; then
+    exit 0
+fi
+
+# Already have a persistence partition — mark and exit
+if blkid -t LABEL=persistence -o device &>/dev/null; then
+    touch "$MARKER"
+    exit 0
+fi
+
+# Find the device we booted from (the one with the live filesystem)
+BOOT_DEV=""
+for dev in /dev/sd? /dev/mmcblk? /dev/nvme?n?; do
+    [ -b "$dev" ] || continue
+    # Check if any partition on this device is mounted as the live media
+    if lsblk -n -o MOUNTPOINT "$dev" 2>/dev/null | grep -q '/run/live/medium\|/cdrom\|/lib/live/mount/medium'; then
+        BOOT_DEV="$dev"
+        break
+    fi
+done
+
+if [ -z "$BOOT_DEV" ]; then
+    echo "claudios-persist: could not detect boot device, skipping."
+    exit 0
+fi
+
+# Count existing partitions
+EXISTING=$(lsblk -n -l -o NAME "$BOOT_DEV" | grep -c -v "^$(basename "$BOOT_DEV")$")
+PART_NUM=$((EXISTING + 1))
+
+# Build partition device name
+NEW_PART="${BOOT_DEV}${PART_NUM}"
+if echo "$BOOT_DEV" | grep -q 'nvme\|loop\|mmcblk'; then
+    NEW_PART="${BOOT_DEV}p${PART_NUM}"
+fi
+
+# Check if there's actually free space (at least 100MB)
+FREE_SECTORS=$(sfdisk -F "$BOOT_DEV" 2>/dev/null | grep -oP '\d+ bytes' | head -1 | grep -oP '^\d+' || echo "0")
+if [ "$FREE_SECTORS" -lt 104857600 ]; then
+    echo "claudios-persist: not enough free space on $BOOT_DEV (need >= 100MB), skipping."
+    touch "$MARKER"
+    exit 0
+fi
+
+# Create partition in remaining space
+echo "claudios-persist: creating persistence partition on $BOOT_DEV..."
+echo -e "n\np\n${PART_NUM}\n\n\nw" | fdisk "$BOOT_DEV" 2>/dev/null || true
+
+sleep 1
+partprobe "$BOOT_DEV" 2>/dev/null || true
+sleep 2
+
+if [ ! -b "$NEW_PART" ]; then
+    echo "claudios-persist: partition $NEW_PART not found after creation, skipping."
+    exit 1
+fi
+
+# Format and write persistence.conf
+mkfs.ext4 -q -L persistence "$NEW_PART"
+MOUNT_DIR=$(mktemp -d)
+mount "$NEW_PART" "$MOUNT_DIR"
+echo "/home union" > "$MOUNT_DIR/persistence.conf"
+umount "$MOUNT_DIR"
+rmdir "$MOUNT_DIR"
+
+touch "$MARKER"
+echo "claudios-persist: persistence partition created on $NEW_PART. Will be active on next reboot."
