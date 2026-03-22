@@ -12,12 +12,12 @@ echo ""
 for cmd in lb curl gpg xorriso; do
     if ! command -v "$cmd" &>/dev/null; then
         echo "ERROR: '$cmd' not found."
-        echo "  sudo apt install live-build curl gnupg xorriso"
+        echo "  sudo apt install live-build curl gnupg xorriso grub-pc-bin"
         exit 1
     fi
 done
 
-# GRUB MBR image needed to make the ISO hybrid-bootable (BIOS + USB)
+# GRUB MBR image needed to make the ISO hybrid-bootable (BIOS USB boot)
 GRUB_MBR="/usr/lib/grub/i386-pc/boot_hybrid.img"
 if [ ! -f "$GRUB_MBR" ]; then
     echo "ERROR: GRUB i386-pc boot_hybrid.img not found."
@@ -55,15 +55,15 @@ if [ -z "$ISO" ] && [ -f chroot/binary.hybrid.iso ]; then
     ISO="binary.hybrid.iso"
 fi
 
-# Post-process: make the ISO hybrid-bootable from USB with GRUB MBR
 if [ -n "$ISO" ]; then
-    echo ">>> Making ISO hybrid-bootable (GRUB MBR via xorriso)..."
-    xorriso -indev "$ISO" \
-        -boot_image grub bin_path=boot/grub/eltorito.img \
+    echo ">>> Making ISO hybrid-bootable for USB (GRUB MBR via xorriso)..."
+    xorriso -indev "$ISO" -outdev "${ISO}.tmp" \
+        -boot_image grub bin_path=boot/grub/grub_eltorito \
         -boot_image grub grub2_mbr="$GRUB_MBR" \
+        -boot_image any partition_table=on \
         -boot_image any replay \
-        -outdev "${ISO%.iso}.hybrid.iso.tmp"
-    mv "${ISO%.iso}.hybrid.iso.tmp" "$ISO"
+        -commit_eject all
+    mv "${ISO}.tmp" "$ISO"
     echo ">>> Hybrid MBR applied."
 
     echo ""
