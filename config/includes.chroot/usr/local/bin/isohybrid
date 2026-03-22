@@ -1,0 +1,5 @@
+#!/bin/sh
+# Wrapper: live-build 3.0 calls isohybrid even with grub2 bootloader,
+# but isohybrid only works with syslinux/isolinux. Skip gracefully —
+# the hybrid MBR is applied by xorriso in build.sh post-processing.
+/usr/bin/isohybrid "$@" 2>/dev/null || echo "isohybrid: skipped (GRUB ISO — hybrid MBR applied in post-build)"

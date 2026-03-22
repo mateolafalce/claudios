@@ -1,0 +1,7 @@
+#!/bin/sh
+# Wrapper: live-build 3.0 calls grub-mkimage without -p (prefix),
+# but GRUB 2.12+ requires it. Add -p /boot/grub if missing.
+case "$*" in
+    *-p\ *|*--prefix*) exec /usr/bin/grub-mkimage "$@" ;;
+    *)                 exec /usr/bin/grub-mkimage -p /boot/grub "$@" ;;
+esac

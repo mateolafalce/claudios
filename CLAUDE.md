@@ -21,9 +21,9 @@ sudo ./clean.sh
 
 Build output goes to `build.log` (piped there by `auto/build`). The generated ISO appears in the project root as `*.iso`.
 
-The build requires `live-build`, `curl`, and `gnupg`:
+The build requires `live-build`, `curl`, `gnupg`, `grub-pc-bin`, and `xorriso`:
 ```bash
-sudo apt install live-build curl gnupg qemu-system-x86
+sudo apt install live-build curl gnupg grub-pc-bin xorriso qemu-system-x86
 ```
 
 ## Architecture

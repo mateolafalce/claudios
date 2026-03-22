@@ -38,7 +38,7 @@ Flash it to a USB stick, boot any x86_64 machine, and you have a portable AI wor
 ### 1. Build the ISO
 
 ```bash
-sudo apt install live-build curl gnupg
+sudo apt install live-build curl gnupg grub-pc-bin xorriso
 sudo ./build.sh
 ```
 
@@ -105,7 +105,7 @@ Replace `/dev/sdX` with your USB device (`lsblk` to find it). The ISO boots in B
 ### Requirements
 
 - Linux system with `live-build`
-- `curl` and `gnupg`
+- `curl`, `gnupg`, `grub-pc-bin`, `xorriso`
 - Internet connection
 - ~10 GB free disk space
 
