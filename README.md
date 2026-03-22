@@ -1,6 +1,12 @@
+<div align="center">
+
+<img src="./claudios.png" width="300" height="300" alt="A hand-drawn, black-and-white illustration in a charcoal and crayon style. The drawing features eight bald, smiling men (not realistic, clearly illustrated/cartoon-like, not photorealistic). The composition is upper-body only (from the waist up), with no legs visible. In the foreground, there are three bald men, centered and prominent. Each one is wearing a T-shirt with the word Claudio clearly visible and legible on the front. Behind them, there are five additional bald men, slightly less detailed and partially overlapped. They are also wearing T-shirts with the word Claudio, but the text does not need to be fully readable. The illustration style is rough, imperfect, and organic: Thick, textured, sketchy black خطوط (lines) Gritty, lo-fi aesthetic Scratchy, uneven outlines Visible hand-drawn imperfections Light grey stubble texture on faces, applied loosely (not filling the lines) Subtle grainy shading. Facial expressions are friendly and smiling. Background is plain white, clean and minimal (no scenery). Overall feel: raw, sketch-like, hand-crafted, slightly messy but expressive, like a charcoal/crayon drawing on paper.">   
+
 # ClaudiOS
 
-A minimalist OS based on Ubuntu 24.04 LTS whose sole purpose is to boot directly into **Claude Code** as the primary interface. No GUI — TUI only.
+</div>
+
+A minimalist OS based on Ubuntu 24.04 LTS whose sole purpose is to boot directly into **Claude Code** as the primary interface. TUI only.
 
 ## Concept
 
