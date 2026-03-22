@@ -55,16 +55,20 @@ if [ -z "$ISO" ] && [ -f chroot/binary.hybrid.iso ]; then
     ISO="binary.hybrid.iso"
 fi
 
-if [ -n "$ISO" ]; then
-    echo ">>> Making ISO hybrid-bootable for USB (GRUB MBR via xorriso)..."
-    xorriso -indev "$ISO" -outdev "${ISO}.tmp" \
-        -boot_image grub bin_path=boot/grub/grub_eltorito \
-        -boot_image grub grub2_mbr="$GRUB_MBR" \
-        -boot_image any partition_table=on \
-        -boot_image any replay \
-        -commit_eject all
-    mv "${ISO}.tmp" "$ISO"
-    echo ">>> Hybrid MBR applied."
+if [ -n "$ISO" ] && [ -d "binary" ]; then
+    echo ">>> Recreating ISO with xorrisofs for proper USB hybrid boot..."
+    xorrisofs \
+        -J -l \
+        -no-emul-boot -boot-load-size 4 -boot-info-table \
+        -r -b boot/grub/grub_eltorito \
+        -c boot.catalog \
+        --grub2-mbr "$GRUB_MBR" \
+        --grub2-boot-info \
+        -V "ClaudiOS" \
+        -o "${ISO}.new" \
+        binary/
+    mv "${ISO}.new" "$ISO"
+    echo ">>> Hybrid ISO created (USB bootable)."
 
     echo ""
     echo "ISO generated: $ISO"
@@ -72,6 +76,9 @@ if [ -n "$ISO" ]; then
     echo ""
     echo "To test: ./test.sh"
     echo "To flash to USB: sudo dd if=$ISO of=/dev/sdX bs=4M status=progress"
+elif [ -n "$ISO" ]; then
+    echo "WARNING: binary/ directory not found, skipping USB hybrid remaster."
+    echo "ISO generated: $ISO (CD boot only)"
 else
     echo "WARNING: No ISO found. Check build.log"
 fi

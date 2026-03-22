@@ -44,7 +44,10 @@ sudo ./build.sh
 
 ### 2. Flash to USB
 
+**Important:** unmount all partitions on the target device before writing:
+
 ```bash
+sudo umount /dev/sda*
 sudo dd if=live-image-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress
 ```
 

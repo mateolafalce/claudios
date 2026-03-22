@@ -1,1 +1,1 @@
-Reinicia el sistema operativo ahora mismo. Ejecuta el comando `sudo reboot` usando la herramienta Bash.
+Reboot the operating system now. Run the `sudo reboot` command using the Bash tool.

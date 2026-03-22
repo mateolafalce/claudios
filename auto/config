@@ -19,5 +19,6 @@ lb config noauto \
     --firmware-chroot false \
     --firmware-binary false \
     --initsystem systemd \
+    --union-filesystem overlay \
     --bootappend-live "components username=claudios systemd.unit=multi-user.target console=ttyS0,115200 console=tty1 persistence persistence-media=removable-usb" \
     "${@}"
