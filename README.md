@@ -6,9 +6,7 @@
 
 **What if your entire OS was just Claude?**
 
-A Linux distro that boots straight into [Claude Code](https://claude.ai/code). No desktop. No window manager. Just a TTY and an AI agent with full system access.
-
-Built on Ubuntu 24.04 LTS.
+A Linux distro that boots straight into [Claude Code](https://claude.ai/code). No desktop. No window manager. Just a TTY and an AI agent with full system access. Built on Ubuntu 24.04 LTS.
 
 [Quick Start](#quick-start) · [How It Works](#how-it-works) · [Features](#features) · [Build From Source](#build-from-source)
 
