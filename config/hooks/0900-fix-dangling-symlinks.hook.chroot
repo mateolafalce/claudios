@@ -1,0 +1,12 @@
+#!/bin/sh
+# Remove dangling symlinks in /boot that cause lb_chroot_hacks to fail
+# (live-build tries to chmod them, which errors on dangling symlinks)
+set -e
+echo ">>> Cleaning up dangling boot symlinks..."
+for f in /boot/initrd.img /boot/initrd.img.old /boot/vmlinuz /boot/vmlinuz.old; do
+    if [ -L "$f" ] && [ ! -e "$f" ]; then
+        rm -f "$f"
+        echo "Removed dangling symlink: $f"
+    fi
+done
+echo ">>> Done."

@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+echo ">>> Configuring locale and timezone..."
+echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+locale-gen
+update-locale LANG=en_US.UTF-8
+ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+echo "UTC" > /etc/timezone
+echo ">>> Locale and timezone configured."

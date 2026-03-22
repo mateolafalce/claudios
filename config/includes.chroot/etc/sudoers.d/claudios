@@ -1,0 +1,1 @@
+claudios ALL=(ALL) NOPASSWD: /usr/sbin/reboot

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+echo ">>> Installing Node.js 22 from NodeSource..."
+
+# Remove Ubuntu's nodejs 18 if present (no npm included)
+if dpkg -l nodejs 2>/dev/null | grep -q '^ii'; then
+    echo "Removing Ubuntu nodejs package..."
+    apt-get remove -y nodejs nodejs-doc 2>/dev/null || true
+fi
+
+# Install NodeSource repo and Node.js 22
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
+
+echo "Node.js version: $(node --version)"
+echo "npm version: $(npm --version)"
+echo ">>> Node.js 22 OK."

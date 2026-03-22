@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+echo ">>> Creating claudios user..."
+
+# Register claudios-shell as a valid shell
+if ! grep -q '/usr/local/bin/claudios-shell' /etc/shells; then
+    echo '/usr/local/bin/claudios-shell' >> /etc/shells
+fi
+
+# Create user with claudios-shell as login shell
+if ! id claudios >/dev/null 2>&1; then
+    useradd \
+        --create-home \
+        --shell /usr/local/bin/claudios-shell \
+        --groups sudo,adm,netdev \
+        claudios
+    echo "claudios:claudios" | chpasswd
+fi
+
+# Ensure shell wrapper permissions
+chmod +x /usr/local/bin/claudios-shell
+
+# Fix ownership of home directory (includes.chroot copies files as root)
+chown -R claudios:claudios /home/claudios
+
+# Secure sudoers drop-in
+chmod 440 /etc/sudoers.d/claudios
+
+echo ">>> claudios user created (pass: claudios)."

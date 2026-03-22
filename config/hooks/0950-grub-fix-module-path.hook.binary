@@ -1,0 +1,13 @@
+#!/bin/sh
+# GRUB 2.12 looks for modules in $prefix/i386-pc/ but live-build 3.0
+# copies them flat into binary/boot/grub/. Create a symlink so GRUB
+# finds them at /boot/grub/i386-pc/ -> /boot/grub/
+set -e
+echo ">>> Fixing GRUB module path for GRUB 2.12 compatibility..."
+
+if [ -d binary/boot/grub ] && [ ! -e binary/boot/grub/i386-pc ]; then
+    ln -s . binary/boot/grub/i386-pc
+    echo "Created symlink: binary/boot/grub/i386-pc -> ."
+fi
+
+echo ">>> GRUB module path fix done."

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Ensure initramfs exists — update-initramfs may have been blocked
+# during kernel installation in the chroot environment.
+set -e
+echo ">>> Ensuring initramfs is generated..."
+
+KVER=$(ls /lib/modules/ | head -1)
+
+if [ -z "$KVER" ]; then
+    echo "ERROR: No kernel modules found in /lib/modules/"
+    exit 1
+fi
+
+if [ ! -f "/boot/initrd.img-${KVER}" ]; then
+    echo "Generating initramfs for ${KVER}..."
+    update-initramfs -c -k "${KVER}"
+else
+    echo "initrd.img-${KVER} already exists."
+fi
+
+ls -la /boot/
+echo ">>> Initramfs OK."

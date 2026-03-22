@@ -1,0 +1,32 @@
+# Networking
+ifupdown
+netplan.io
+isc-dhcp-client
+iproute2
+iputils-ping
+net-tools
+curl
+wget
+ca-certificates
+openssh-client
+gnupg
+
+# WiFi
+wpasupplicant
+wireless-tools
+iw
+
+# System
+sudo
+vim-tiny
+less
+bash-completion
+locales
+tzdata
+console-setup
+
+# Build (needed by live-build for iso-hybrid)
+syslinux-utils
+
+# Dev (needed by Claude Code)
+git

@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+lb config noauto \
+    --distribution noble \
+    --parent-distribution noble \
+    --parent-mirror-bootstrap "http://archive.ubuntu.com/ubuntu" \
+    --parent-mirror-chroot-security "http://security.ubuntu.com/ubuntu" \
+    --parent-mirror-binary "http://archive.ubuntu.com/ubuntu" \
+    --parent-mirror-binary-security "http://security.ubuntu.com/ubuntu" \
+    --archive-areas "main restricted universe" \
+    --architectures amd64 \
+    --binary-images iso-hybrid \
+    --bootloader grub2 \
+    --linux-flavours generic \
+    --security false \
+    --apt-recommends false \
+    --memtest none \
+    --firmware-chroot false \
+    --firmware-binary false \
+    --initsystem systemd \
+    --bootappend-live "components username=claudios systemd.unit=multi-user.target console=ttyS0,115200 console=tty1" \
+    "${@}"
