@@ -145,3 +145,7 @@ If `claudios-shell` fails and you lose access:
 | Username | `claudios`           |
 | Password | `claudios`           |
 | API key  | managed by Claude Code |
+
+## License
+
+[MIT](LICENSE)
