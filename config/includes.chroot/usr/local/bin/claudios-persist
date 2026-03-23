@@ -1,77 +1,150 @@
 #!/bin/bash
 # ClaudiOS Auto-Persistence
-# Detects the boot USB device and creates a persistence partition
+# Detects the boot device and creates a persistence partition
 # in the remaining free space. Runs once at first boot via systemd.
 
 set -euo pipefail
 
+LOG_FILE="/var/log/claudios-persist.log"
 MARKER="/var/lib/claudios-persist-done"
+
+log() {
+    echo "claudios-persist: $*" | tee -a "$LOG_FILE"
+}
 
 # Already configured — nothing to do
 if [ -f "$MARKER" ]; then
     exit 0
 fi
 
+log "starting persistence setup..."
+
 # Already have a persistence partition — mark and exit
 if blkid -t LABEL=persistence -o device &>/dev/null; then
+    log "persistence partition already exists: $(blkid -t LABEL=persistence -o device)"
     touch "$MARKER"
     exit 0
 fi
 
-# Find the device we booted from (the one with the live filesystem)
-BOOT_DEV=""
-for dev in /dev/sd? /dev/mmcblk? /dev/nvme?n?; do
-    [ -b "$dev" ] || continue
-    # Check if any partition on this device is mounted as the live media
-    if lsblk -n -o MOUNTPOINT "$dev" 2>/dev/null | grep -q '/run/live/medium\|/cdrom\|/lib/live/mount/medium'; then
-        BOOT_DEV="$dev"
+# --- Detect the boot device ---
+BOOT_PART=""
+
+# Method 1: findmnt on known live-boot mount points
+for mnt in /run/live/medium /lib/live/mount/medium /cdrom; do
+    if findmnt -n -o SOURCE "$mnt" &>/dev/null; then
+        BOOT_PART=$(findmnt -n -o SOURCE "$mnt")
+        log "found boot partition via findmnt ($mnt): $BOOT_PART"
         break
     fi
 done
 
-if [ -z "$BOOT_DEV" ]; then
-    echo "claudios-persist: could not detect boot device, skipping."
+# Method 2: fall back to lsblk mount point scanning
+if [ -z "$BOOT_PART" ]; then
+    for dev in /dev/sd? /dev/mmcblk? /dev/nvme?n?; do
+        [ -b "$dev" ] || continue
+        MATCH=$(lsblk -rn -o NAME,MOUNTPOINT "$dev" 2>/dev/null \
+            | grep -E '/run/live/medium|/cdrom|/lib/live/mount/medium' \
+            | head -1 | awk '{print $1}' || true)
+        if [ -n "$MATCH" ]; then
+            BOOT_PART="/dev/$MATCH"
+            log "found boot partition via lsblk scan: $BOOT_PART"
+            break
+        fi
+    done
+fi
+
+if [ -z "$BOOT_PART" ]; then
+    log "ERROR: could not detect boot partition, skipping."
     exit 0
 fi
 
-# Count existing partitions
-EXISTING=$(lsblk -n -l -o NAME "$BOOT_DEV" | grep -c -v "^$(basename "$BOOT_DEV")$")
-PART_NUM=$((EXISTING + 1))
-
-# Build partition device name
-NEW_PART="${BOOT_DEV}${PART_NUM}"
-if echo "$BOOT_DEV" | grep -q 'nvme\|loop\|mmcblk'; then
-    NEW_PART="${BOOT_DEV}p${PART_NUM}"
+# Derive parent disk device from partition
+BOOT_DEV=$(lsblk -n -o PKNAME "$BOOT_PART" 2>/dev/null | head -1 | xargs)
+if [ -z "$BOOT_DEV" ]; then
+    log "ERROR: could not determine parent disk for $BOOT_PART"
+    exit 1
 fi
+BOOT_DEV="/dev/$BOOT_DEV"
+log "boot device is $BOOT_DEV"
 
-# Check if there's actually free space (at least 100MB)
-FREE_SECTORS=$(sfdisk -F "$BOOT_DEV" 2>/dev/null | grep -oP '\d+ bytes' | head -1 | grep -oP '^\d+' || echo "0")
-if [ "$FREE_SECTORS" -lt 104857600 ]; then
-    echo "claudios-persist: not enough free space on $BOOT_DEV (need >= 100MB), skipping."
+# --- Check free space using parted ---
+FREE_INFO=$(parted -s "$BOOT_DEV" unit B print free 2>/dev/null | grep 'Free Space' | tail -1 || true)
+if [ -z "$FREE_INFO" ]; then
+    log "ERROR: no free space found on $BOOT_DEV"
     touch "$MARKER"
     exit 0
 fi
 
-# Create partition in remaining space
-echo "claudios-persist: creating persistence partition on $BOOT_DEV..."
-echo -e "n\np\n${PART_NUM}\n\n\nw" | fdisk "$BOOT_DEV" 2>/dev/null || true
+FREE_START=$(echo "$FREE_INFO" | awk '{print $1}' | tr -d 'B')
+FREE_END=$(echo "$FREE_INFO" | awk '{print $2}' | tr -d 'B')
+FREE_BYTES=$(( FREE_END - FREE_START ))
+log "free space: ${FREE_BYTES} bytes (from ${FREE_START}B to ${FREE_END}B)"
 
-sleep 1
-partprobe "$BOOT_DEV" 2>/dev/null || true
-sleep 2
+if [ "$FREE_BYTES" -lt 104857600 ]; then
+    log "not enough free space (need >= 100MB), skipping."
+    touch "$MARKER"
+    exit 0
+fi
 
-if [ ! -b "$NEW_PART" ]; then
-    echo "claudios-persist: partition $NEW_PART not found after creation, skipping."
+# --- Count partitions BEFORE creation ---
+BEFORE_COUNT=$(lsblk -n -l -o NAME "$BOOT_DEV" | grep -cv "^$(basename "$BOOT_DEV")$" || echo "0")
+log "partitions before: $BEFORE_COUNT"
+
+# --- Create persistence partition with parted ---
+# Align start to 1MiB boundary for optimal performance
+ALIGN=$((1024 * 1024))
+FREE_START=$(( (FREE_START + ALIGN - 1) / ALIGN * ALIGN ))
+log "creating persistence partition on $BOOT_DEV (${FREE_START}B to ${FREE_END}B)..."
+
+if ! parted -s -a optimal "$BOOT_DEV" mkpart primary ext4 "${FREE_START}B" "${FREE_END}B" 2>&1 | tee -a "$LOG_FILE"; then
+    log "ERROR: parted failed to create partition"
     exit 1
 fi
 
-# Format and write persistence.conf
+# Wait for kernel to recognize the new partition
+partprobe "$BOOT_DEV" 2>/dev/null || true
+udevadm settle --timeout=10 2>/dev/null || true
+sleep 2
+
+# --- Validate partition was created ---
+AFTER_COUNT=$(lsblk -n -l -o NAME "$BOOT_DEV" | grep -cv "^$(basename "$BOOT_DEV")$" || echo "0")
+log "partitions after: $AFTER_COUNT"
+
+if [ "$AFTER_COUNT" -le "$BEFORE_COUNT" ]; then
+    log "ERROR: partition count did not increase ($BEFORE_COUNT -> $AFTER_COUNT). Creation failed."
+    exit 1
+fi
+
+# --- Construct new partition device name ---
+PART_NUM=$AFTER_COUNT
+if echo "$BOOT_DEV" | grep -qE 'nvme|loop|mmcblk'; then
+    NEW_PART="${BOOT_DEV}p${PART_NUM}"
+else
+    NEW_PART="${BOOT_DEV}${PART_NUM}"
+fi
+
+# Wait for device node to appear
+for i in $(seq 1 10); do
+    [ -b "$NEW_PART" ] && break
+    sleep 1
+    partprobe "$BOOT_DEV" 2>/dev/null || true
+    udevadm settle --timeout=5 2>/dev/null || true
+done
+
+if [ ! -b "$NEW_PART" ]; then
+    log "ERROR: new partition device $NEW_PART does not exist"
+    exit 1
+fi
+
+log "formatting $NEW_PART as ext4 with label 'persistence'..."
+
+# --- Format and write persistence.conf ---
 mkfs.ext4 -q -L persistence "$NEW_PART"
 MOUNT_DIR=$(mktemp -d)
 mount "$NEW_PART" "$MOUNT_DIR"
-echo "/home union" > "$MOUNT_DIR/persistence.conf"
+echo "/ union" > "$MOUNT_DIR/persistence.conf"
 umount "$MOUNT_DIR"
 rmdir "$MOUNT_DIR"
 
 touch "$MARKER"
-echo "claudios-persist: persistence partition created on $NEW_PART. Will be active on next reboot."
+log "persistence partition created on $NEW_PART. Will be active on next reboot."

@@ -37,6 +37,9 @@ fi
 echo ">>> Running lb config..."
 lb config
 
+# Ubuntu Noble (kernel 6.8+) dropped aufs — force overlayfs for live persistence
+sed -i 's/LB_UNION_FILESYSTEM="aufs"/LB_UNION_FILESYSTEM="overlay"/' config/chroot
+
 # lb build (reads auto/build) — must run as root
 if [ "$(id -u)" -ne 0 ]; then
     echo "ERROR: lb build requires root privileges."
@@ -64,6 +67,7 @@ if [ -n "$ISO" ] && [ -d "binary" ]; then
         -c boot.catalog \
         --grub2-mbr "$GRUB_MBR" \
         --grub2-boot-info \
+        --protective-msdos-label \
         -V "ClaudiOS" \
         -o "${ISO}.new" \
         binary/
@@ -74,8 +78,9 @@ if [ -n "$ISO" ] && [ -d "binary" ]; then
     echo "ISO generated: $ISO"
     echo "Size: $(du -sh "$ISO" | cut -f1)"
     echo ""
-    echo "To test: ./test.sh"
-    echo "To flash to USB: sudo dd if=$ISO of=/dev/sdX bs=4M status=progress"
+    echo "To test:     ./test.sh"
+    echo "To flash:    sudo ./flash.sh /dev/sdX"
+    echo "To flash:    sudo dd if=$ISO of=/dev/sdX bs=4M status=progress (without persistence)"
 elif [ -n "$ISO" ]; then
     echo "WARNING: binary/ directory not found, skipping USB hybrid remaster."
     echo "ISO generated: $ISO (CD boot only)"

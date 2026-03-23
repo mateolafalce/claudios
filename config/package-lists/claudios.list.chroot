@@ -24,6 +24,9 @@ bash-completion
 locales
 tzdata
 console-setup
+fdisk
+parted
+e2fsprogs
 
 # Build (needed by live-build for iso-hybrid)
 syslinux-utils

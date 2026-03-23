@@ -44,14 +44,23 @@ sudo ./build.sh
 
 ### 2. Flash to USB
 
-**Important:** unmount all partitions on the target device before writing:
+```bash
+sudo ./flash.sh /dev/sdX
+```
+
+Replace `/dev/sdX` with your USB device (`lsblk` to find it). The script writes the ISO and creates the persistence partition automatically — the USB is ready to use from the first boot.
+
+<details>
+<summary>Manual flash (without persistence)</summary>
 
 ```bash
-sudo umount /dev/sda*
+sudo umount /dev/sdX*
 sudo dd if=live-image-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress
 ```
 
-Replace `/dev/sdX` with your USB device (`lsblk` to find it).
+If you flash manually, the persistence partition will be created automatically on first boot instead.
+
+</details>
 
 ### 3. Boot and go
 
@@ -130,6 +139,7 @@ sudo ./clean.sh
 ```
 claudios/
 ├── build.sh                    # Main build script (requires sudo)
+├── flash.sh                    # Flashes ISO to USB with persistence
 ├── clean.sh                    # Removes build artifacts
 ├── test.sh                     # Launches the ISO in QEMU
 ├── auto/

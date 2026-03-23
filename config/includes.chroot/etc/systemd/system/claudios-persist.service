@@ -1,12 +1,14 @@
 [Unit]
 Description=ClaudiOS auto-persistence setup
-After=local-fs.target
+After=local-fs.target systemd-udevd.service
+Wants=systemd-udevd.service
 ConditionPathExists=!/var/lib/claudios-persist-done
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/claudios-persist
 RemainAfterExit=yes
+StandardOutput=journal+console
 
 [Install]
 WantedBy=multi-user.target

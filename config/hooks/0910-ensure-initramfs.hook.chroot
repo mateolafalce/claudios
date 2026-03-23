@@ -11,12 +11,9 @@ if [ -z "$KVER" ]; then
     exit 1
 fi
 
-if [ ! -f "/boot/initrd.img-${KVER}" ]; then
-    echo "Generating initramfs for ${KVER}..."
-    update-initramfs -c -k "${KVER}"
-else
-    echo "initrd.img-${KVER} already exists."
-fi
+# Always regenerate to include custom live-boot patches from includes.chroot
+echo "Regenerating initramfs for ${KVER}..."
+update-initramfs -c -k "${KVER}" -t
 
 ls -la /boot/
 echo ">>> Initramfs OK."
