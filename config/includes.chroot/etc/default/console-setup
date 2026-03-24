@@ -1,0 +1,5 @@
+ACTIVE_CONSOLES="/dev/tty[1-6]"
+CHARMAP="UTF-8"
+CODESET="Uni2"
+FONTFACE="Terminus"
+FONTSIZE="16"

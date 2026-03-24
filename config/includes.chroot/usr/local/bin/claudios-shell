@@ -24,6 +24,10 @@ if ! command -v claude &>/dev/null; then
     echo ""
 fi
 
+# --- Terminal capabilities ---
+export TERM=xterm-256color
+export COLORTERM=truecolor
+
 # --- Banner and escape hatch ---
 clear
 cat <<'BANNER'

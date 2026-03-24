@@ -106,11 +106,23 @@ sudo qemu-system-x86_64 \
   -m 4G \
   -enable-kvm \
   -cpu host \
-  -nographic \
-  -serial mon:stdio
+  -device virtio-vga \
+  -display gtk
 ```
 
 Replace `/dev/sdX` with your USB device (`lsblk` to find it). The ISO boots in BIOS/Legacy mode.
+
+> **Tip:** To log in to your Claude account from your PC terminal (so you can copy and paste the auth URL easily), boot with `-nographic` instead:
+>
+> ```bash
+> sudo qemu-system-x86_64 \
+>   -drive file=/dev/sda,format=raw \
+>   -m 4G \
+>   -enable-kvm \
+>   -cpu host \
+>   -nographic \
+>   -serial mon:stdio
+> ```
 
 ## Build From Source
 
@@ -132,6 +144,12 @@ Replace `/dev/sdX` with your USB device (`lsblk` to find it). The ISO boots in B
 
 ```bash
 sudo ./clean.sh
+```
+
+To also remove the package cache (forces a full re-download on next build):
+
+```bash
+sudo ./clean.sh && sudo rm -rf cache/
 ```
 
 ## Project Structure
