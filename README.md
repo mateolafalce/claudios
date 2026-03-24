@@ -19,7 +19,7 @@ A Linux distro that boots straight into [Claude Code](https://claude.ai/code). N
 
 <div align="center">
 
-<img src="./demo.gif" width="600" alt="ClaudiOS demo">
+<img src="./claudios.gif" width="600" alt="ClaudiOS demo">
 
 </div>
 
