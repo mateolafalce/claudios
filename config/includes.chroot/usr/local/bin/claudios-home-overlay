@@ -1,0 +1,127 @@
+#!/bin/bash
+# Mount the persistence partition as an overlayfs on /home.
+# This preserves all user data (credentials, files, configs) across reboots.
+# Runs as a systemd oneshot service early in boot.
+#
+# On hybrid ISO USBs, the whole device (e.g. /dev/sda) is mounted as the live
+# medium, which on kernel 6.x prevents direct access to partitions on the same
+# disk. Workaround: check if live-boot already set up a loop device for the
+# partition, or create one using the partition's sysfs offset.
+
+set -euo pipefail
+
+LOG_TAG="claudios-home-overlay"
+
+log() {
+    echo "[${LOG_TAG}] $*"
+}
+
+# Find persistence partition by label
+PERSIST_DEV=$(blkid -L persistence 2>/dev/null || true)
+
+if [ -z "${PERSIST_DEV}" ]; then
+    log "No partition labeled 'persistence' found. Skipping home overlay."
+    exit 0
+fi
+
+log "Found persistence partition: ${PERSIST_DEV}"
+
+# Create mount point
+PERSIST_MNT="/run/live/persistence/home"
+mkdir -p "${PERSIST_MNT}"
+
+# Try direct mount first
+mount_ok=false
+if mount -t ext4 -o rw,noatime "${PERSIST_DEV}" "${PERSIST_MNT}" 2>/dev/null; then
+    log "Direct mount of ${PERSIST_DEV} succeeded."
+    mount_ok=true
+fi
+
+# If direct mount failed, use loop device workaround
+if [ "${mount_ok}" = false ]; then
+    log "Direct mount failed (kernel blockdev restriction). Trying loop device..."
+
+    # Extract partition name (e.g., "sda2" from "/dev/sda2")
+    PART_NAME=$(basename "${PERSIST_DEV}")
+    # Extract parent disk (e.g., "sda" from "sda2")
+    PARENT_DISK=$(echo "${PART_NAME}" | sed 's/[0-9]*$//')
+
+    # Check if live-boot already created a loop device for this partition
+    LOOP_DEV=""
+    if [ -f /sys/block/${PART_NAME}/start ]; then
+        EXPECTED_OFFSET=$(( $(cat /sys/block/${PARENT_DISK}/${PART_NAME}/start) * 512 ))
+        log "Partition offset: ${EXPECTED_OFFSET}"
+
+        # Search existing loop devices for one matching our offset
+        for loop in /sys/block/loop*/; do
+            lname=$(basename "${loop}")
+            lo_offset=$(cat "${loop}/loop/offset" 2>/dev/null || echo "-1")
+            lo_backing=$(cat "${loop}/loop/backing_file" 2>/dev/null || echo "")
+            if [ "${lo_offset}" = "${EXPECTED_OFFSET}" ] && [ "${lo_backing}" = "/dev/${PARENT_DISK}" ]; then
+                LOOP_DEV="/dev/${lname}"
+                log "Found existing loop device: ${LOOP_DEV}"
+                break
+            fi
+        done
+    fi
+
+    # If no existing loop device, create one
+    if [ -z "${LOOP_DEV}" ]; then
+        PART_START=$(cat /sys/block/${PARENT_DISK}/${PART_NAME}/start 2>/dev/null || echo "")
+        PART_SIZE=$(cat /sys/block/${PARENT_DISK}/${PART_NAME}/size 2>/dev/null || echo "")
+
+        if [ -z "${PART_START}" ] || [ -z "${PART_SIZE}" ]; then
+            log "ERROR: Cannot read partition geometry from sysfs."
+            exit 1
+        fi
+
+        OFFSET=$((PART_START * 512))
+        SIZELIMIT=$((PART_SIZE * 512))
+        log "Creating loop device: offset=${OFFSET} sizelimit=${SIZELIMIT}"
+
+        LOOP_DEV=$(losetup -f --show -o "${OFFSET}" --sizelimit "${SIZELIMIT}" "/dev/${PARENT_DISK}" 2>/dev/null || true)
+
+        if [ -z "${LOOP_DEV}" ]; then
+            log "ERROR: Failed to create loop device."
+            exit 1
+        fi
+        log "Created loop device: ${LOOP_DEV}"
+    fi
+
+    # Check if loop device is already mounted somewhere
+    EXISTING_MNT=$(findmnt -n -o TARGET "${LOOP_DEV}" 2>/dev/null || true)
+    if [ -n "${EXISTING_MNT}" ]; then
+        log "Loop device already mounted at ${EXISTING_MNT}, bind-mounting to ${PERSIST_MNT}"
+        if mount --bind "${EXISTING_MNT}" "${PERSIST_MNT}"; then
+            mount_ok=true
+        fi
+    else
+        if mount -t ext4 -o rw,noatime "${LOOP_DEV}" "${PERSIST_MNT}"; then
+            log "Mounted ${LOOP_DEV} on ${PERSIST_MNT}"
+            mount_ok=true
+        fi
+    fi
+fi
+
+if [ "${mount_ok}" = false ]; then
+    log "ERROR: All mount attempts failed for persistence partition."
+    exit 1
+fi
+
+# Create overlay directories on the persistence partition
+UPPER="${PERSIST_MNT}/home-upper"
+WORK="${PERSIST_MNT}/home-work"
+mkdir -p "${UPPER}" "${WORK}"
+
+# Mount overlayfs on /home
+# lowerdir = current /home (from squashfs + live-boot tmpfs overlay)
+# upperdir = persistence partition (survives reboots)
+if mount -t overlay overlay \
+    -o "lowerdir=/home,upperdir=${UPPER},workdir=${WORK}" \
+    /home; then
+    log "Overlay mounted on /home — persistence is active."
+else
+    log "ERROR: Failed to mount overlay on /home"
+    umount "${PERSIST_MNT}" 2>/dev/null || true
+    exit 1
+fi

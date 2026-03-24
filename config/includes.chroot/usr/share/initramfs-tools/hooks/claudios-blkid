@@ -1,0 +1,12 @@
+#!/bin/sh
+# Ensure the full blkid binary is in the initramfs.
+# live-boot's probe_for_fs_label() needs "blkid -s LABEL -o value"
+# which busybox's blkid may not support.
+
+set -e
+
+. /usr/share/initramfs-tools/hook-functions
+
+if [ -x /sbin/blkid ]; then
+    copy_exec /sbin/blkid /sbin
+fi

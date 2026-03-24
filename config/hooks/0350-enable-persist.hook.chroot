@@ -3,3 +3,7 @@ set -e
 echo ">>> Enabling claudios-persist service..."
 systemctl enable claudios-persist.service
 echo ">>> claudios-persist service enabled."
+
+echo ">>> Enabling claudios-home-overlay service..."
+systemctl enable claudios-home-overlay.service
+echo ">>> claudios-home-overlay service enabled."

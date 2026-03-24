@@ -115,8 +115,9 @@ mkfs.ext4 -q -L persistence "$NEW_PART"
 MOUNT_DIR=$(mktemp -d)
 mount "$NEW_PART" "$MOUNT_DIR"
 echo "/ union" > "$MOUNT_DIR/persistence.conf"
-umount "$MOUNT_DIR"
-rmdir "$MOUNT_DIR"
+sync
+umount -l "$MOUNT_DIR" || umount "$MOUNT_DIR"
+rmdir "$MOUNT_DIR" 2>/dev/null || true
 
 echo ""
 echo "=== Done ==="
